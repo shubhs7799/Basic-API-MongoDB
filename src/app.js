@@ -4,11 +4,13 @@ const app = express();
 const User = require("./models/user");
 const {validateSignUpData} = require("./utils/validation");
 const bcrypt = require('bcrypt');
-
+const jwt = require("jsonwebtoken");
+const cookieParser  = require('cookie-parser');
+const userAuth = require("./middleware/auth");
 
 // use middleware express.json to convert json to javascript for all routes
 app.use(express.json());
-
+app.use(cookieParser());
 // signup api
 app.post("/signup", async (req, res) => {
   const {firstName,lastName,emailId,password,age,gender} = req.body;
@@ -47,12 +49,25 @@ app.post("/login", async(req, res) => {
       if(!isPassValid) {
         throw new Error("Invalid Credentials");
       }else{
+        const token = await jwt.sign({_id : user._id},"SECREAT_KEY_2025", { expiresIn: '1h' });
+        res.cookie("token",token, { expires: new Date(Date.now() + 8*3600000) });
         res.status(200).send("Login Successfully !");
       }
     }
   } catch(err) {
     res.status(400).send("Error" + err);
   }
+});
+
+app.get("/profile",userAuth,async(req,res) => {
+
+  try{
+    const user = req.user;
+    res.send(user);
+  }catch(err){
+    res.status(400).send("Error : " + err.message);
+  }
+
 });
 
 //all get api
